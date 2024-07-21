@@ -4,7 +4,6 @@
   package:
     name:
       - jq
-      - podman
 
 - name: Create user caddy
   user:
@@ -25,10 +24,10 @@
     name: caddy
     enabled: true
 
-- name: Copy caddy updater script
-  copy:
+- name: Deploy caddy updater script
+  template:
+    src: update_caddy.sh.j2
     dest: /home/caddy/update_caddy.sh
-    src: update_caddy.sh
     owner: caddy
     group: caddy
     mode: 0700
@@ -54,12 +53,11 @@
     name: systemd
   vars:
     systemd_name: caddy-updater
-    systemd_script_file_name: update_caddy.sh
-    systemd_script_destination: /home/caddy/update_caddy.sh
     systemd_script_owner: caddy
     systemd_script_group: caddy
     systemd_service_description: Update caddy to newest version
     systemd_service_options:
+      ExecStart: /home/caddy/update_caddy.sh
       User: caddy
       Group: caddy
     systemd_notify:
