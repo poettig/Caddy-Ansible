@@ -1,0 +1,30 @@
+---
+
+- name: Regenerate caddy config
+  shell:
+    executable: /usr/bin/bash
+    cmd: | 
+      set -e
+      
+      # Check if caddy adapt succeeds
+      /home/caddy/.local/bin/caddy adapt --config /etc/caddy/Caddyfile > /dev/null
+      
+      # Enable nullglob to evaluate /etc/caddy/conf.d/*.json to <empty string> if there are no JSON files
+      shopt -s nullglob
+      
+      # Generate config
+      /usr/bin/jq -cs 'reduce .[] as $item ({}; . * $item)' /etc/caddy/conf.d/*.json <(/home/caddy/.local/bin/caddy adapt --config /etc/caddy/Caddyfile) > /etc/caddy/config.json
+      
+      # Validate that config is correct
+      /home/caddy/.local/bin/caddy validate --config /etc/caddy/config.json
+
+- name: Reload caddy
+  systemd:
+    name: caddy
+    state: reloaded
+
+- name: Restart caddy
+  systemd:
+    name: caddy
+    state: restarted
+    daemon_reload: true

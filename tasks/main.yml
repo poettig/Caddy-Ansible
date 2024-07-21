@@ -1,0 +1,138 @@
+---
+
+- name: Install updater dependencies
+  package:
+    name:
+      - jq
+      - podman
+
+- name: Create user caddy
+  user:
+    name: caddy
+    shell: /usr/bin/nologin
+
+- name: Install caddy service
+  copy:
+    src: caddy.service
+    dest: /etc/systemd/system/caddy.service
+    owner: root
+    group: root
+    mode: 0644
+  notify: Restart caddy
+
+- name: Enable caddy service
+  systemd:
+    name: caddy
+    enabled: true
+
+- name: Copy caddy updater script
+  copy:
+    dest: /home/caddy/update_caddy.sh
+    src: update_caddy.sh
+    owner: caddy
+    group: caddy
+    mode: 0700
+  register: caddy_update_deploy
+
+- name: Allow user caddy to restart caddy
+  community.general.sudoers:
+    name: allow-restart-caddy
+    state: present
+    user: caddy
+    commands: /bin/systemctl restart caddy
+
+- name: Install caddy via updater
+  become: yes
+  become_user: caddy
+  command:
+    cmd: /home/caddy/update_caddy.sh -f
+    creates: "{% if caddy_update_deploy.changed %}/this_does_never_exist{% else %}/home/caddy/.local/bin/caddy{% endif %}"
+  # No notify, the updater script restarts the service itself
+
+- name: Setup timed systemd update job
+  include_role:
+    name: systemd
+  vars:
+    systemd_name: caddy-updater
+    systemd_script_file_name: update_caddy.sh
+    systemd_script_destination: /home/caddy/update_caddy.sh
+    systemd_script_owner: caddy
+    systemd_script_group: caddy
+    systemd_service_description: Update caddy to newest version
+    systemd_service_options:
+      User: caddy
+      Group: caddy
+    systemd_notify:
+      failed: true
+      success: true
+    systemd_timer_description: "Try to update caddy once per day sometime between 5:00 and 6:00"
+    systemd_timer_options:
+      OnCalendar: "*-*-* 05:00"
+      RandomizedDelaySec: 3600
+
+- name: Create caddy config directory
+  file:
+    path: /etc/caddy
+    owner: caddy
+    group: caddy
+    mode: 0700
+    state: directory
+  notify:
+    - Regenerate caddy config
+    - Restart caddy
+
+- name: Create caddy subconfig directories
+  file:
+    path: /etc/caddy/{{ item }}
+    owner: caddy
+    group: caddy
+    mode: 0700
+    state: directory
+  loop:
+    - global.d
+    - conf.d
+  notify:
+    - Regenerate caddy config
+    - Restart caddy
+
+- name: Install caddy main config
+  copy:
+    src: Caddyfile
+    dest: /etc/caddy/Caddyfile
+    owner: caddy
+    group: caddy
+    mode: 0600
+  notify:
+    - Regenerate caddy config
+    - Restart caddy
+
+- name: Create the webroot
+  file:
+    path: "{{ caddy_webroot }}"
+    state: directory
+    owner: caddy
+    group: caddy
+    mode: 0755
+
+- name: Create the log directory
+  file:
+    path: "{{ caddy_logdir }}"
+    state: directory
+    owner: caddy
+    group: caddy
+    mode: 0711
+  notify: Restart caddy
+
+- name: Enable caddy
+  service:
+    name: caddy
+    enabled: yes
+
+- name: Add main site config to caddy
+  include_role:
+    name: caddy
+    tasks_from: caddy_add_subconfigs.yml
+  vars:
+    caddy_subconfigs:
+      - template: templates/{{ inventory_hostname }}/main.conf.j2
+  when: ('templates/' + inventory_hostname + '/main.conf.j2') is file
