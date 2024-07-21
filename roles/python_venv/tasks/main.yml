@@ -38,11 +38,11 @@
     virtualenv: "{{ python_venv_directory }}"
     name: "{{ python_venv_modules }}"
   notify: "{{ python_venv_handlers_to_notify }}"
-  when: python_venv_modules is defined
+  when: python_venv_modules is defined and not ansible_check_mode
 
 - name: Install requirements from requirements file
   pip:
     virtualenv: "{{ python_venv_directory }}"
     requirements: "{{ python_venv_requirements_file }}"
   notify: "{{ python_venv_handlers_to_notify }}"
-  when: python_venv_requirements_file is defined
+  when: python_venv_requirements_file is defined and not ansible_check_mode
