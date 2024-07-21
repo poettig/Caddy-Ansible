@@ -1,0 +1,10 @@
+---
+
+galaxy_info:
+  role_name: caddy
+  description: >
+    A role that installs caddy with plugins using xcaddy including an updater script
+    that keeps caddy up to date.
+  author: poettig
+  license: MIT
+  min_ansible_version: "2.14"
