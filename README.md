@@ -7,6 +7,9 @@ Documentation for the collection.
 Just add the collection to your galaxy-requirements file using git.
 The collection is currently not published to the ansible galaxy.
 
+The version corresponds to the tag your want to use.
+Use `main` if you always want to use the latest version.
+
 ```yml
 collections:
   - name: poettig.roles
