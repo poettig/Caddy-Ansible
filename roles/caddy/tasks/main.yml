@@ -25,10 +25,10 @@
     name: caddy
     enabled: true
 
-- name: Copy caddy updater script
-  copy:
+- name: Deploy caddy updater script
+  template:
+    src: update_caddy.sh.j2
     dest: /home/caddy/update_caddy.sh
-    src: update_caddy.sh
     owner: caddy
     group: caddy
     mode: 0700
