@@ -1,8 +1,14 @@
 ---
 
+- name: Load OS dependent variables
+  include_vars:
+    file: "{{ ansible_distribution | lower }}.yml"
+
 - name: Install python virtualenv
   package:
-    name: "{{ python_venv_package_name }}"
+    name:
+      - "{{ python_venv_virtualenv_package_name }}"
+      - "{{ python_venv_packaging_package_name }}"
 
 - name: Check if venv directory exists
   stat:
