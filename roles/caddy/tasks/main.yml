@@ -19,11 +19,6 @@
     mode: 0644
   notify: Restart caddy
 
-- name: Enable caddy service
-  systemd:
-    name: caddy
-    enabled: true
-
 - name: Deploy caddy updater script
   template:
     src: update_caddy.sh.j2
