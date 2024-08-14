@@ -22,9 +22,12 @@
   systemd:
     name: caddy
     state: reloaded
+    daemon_reload: true
+  ignore_errors: "{{ ansible_check_mode }}"
 
 - name: Restart caddy
   systemd:
     name: caddy
     state: restarted
     daemon_reload: true
+  ignore_errors: "{{ ansible_check_mode }}"
