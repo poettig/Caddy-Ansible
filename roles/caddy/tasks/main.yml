@@ -125,6 +125,7 @@
   service:
     name: caddy
     enabled: yes
+  ignore_errors: "{{ ansible_check_mode }}"
 
 - name: Add main site config to caddy
   include_role:
