@@ -41,6 +41,7 @@
   command:
     cmd: /home/caddy/update_caddy.sh -f
     creates: "{% if caddy_update_deploy.changed %}/this_does_never_exist{% else %}/home/caddy/.local/bin/caddy{% endif %}"
+  ignore_errors: "{{ ansible_check_mode }}"
   # No notify, the updater script restarts the service itself
 
 - name: Setup timed systemd update job
