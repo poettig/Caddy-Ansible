@@ -1,9 +1,13 @@
 ---
 
-- name: Install updater dependencies
+- name: Install jq required by updater
   package:
-    name:
-      - jq
+    name: jq
+
+- name: Install podman if requested
+  package:
+    name: "{{ caddy_podman_package_name }}"
+  when: caddy_podman_package_name is defined
 
 - name: Create user caddy
   user:
