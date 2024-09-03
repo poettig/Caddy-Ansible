@@ -1,0 +1,28 @@
+---
+
+- name: "Create caddy subconfig directory /etc/caddy/{{ caddy_generic_subconfig.directory }}"
+  file:
+    path: "/etc/caddy/{{ caddy_generic_subconfig.directory }}"
+    owner: caddy
+    group: caddy
+    mode: 0700
+    state: directory
+  notify: Reload caddy
+
+- name: "Prepare target filename for {{ caddy_generic_subconfig.template }}"
+  set_fact:
+    caddy_generic_subconfig_target_filename: >-
+      {% if caddy_generic_subconfig.target_filename is defined %}
+        {{- caddy_generic_subconfig.target_filename | regex_replace('\.(j2|jinja2?)$', '') -}}
+      {% else %}
+        {{- caddy_generic_subconfig.template | basename | regex_replace('\.(j2|jinja2?)$', '') -}}
+      {% endif %}
+
+- name: "Install caddy subconfig {{ caddy_generic_subconfig.template }} to /etc/caddy/{{ caddy_generic_subconfig.directory }}/{{ caddy_generic_subconfig_target_filename }}"
+  template:
+    src: "{{ caddy_generic_subconfig.template }}"
+    dest: "/etc/caddy/{{ caddy_generic_subconfig.directory }}/{{ caddy_generic_subconfig_target_filename }}"
+    owner: caddy
+    group: caddy
+    mode: 0600
+  notify: Reload caddy

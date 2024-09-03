@@ -7,4 +7,4 @@
 	import /etc/caddy/global.d/*.conf
 }
 
-import /etc/caddy/conf.d/*.conf
+import /etc/caddy/sites.d/*.conf

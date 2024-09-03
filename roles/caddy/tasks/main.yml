@@ -10,6 +10,14 @@
     name: caddy
     shell: /usr/bin/nologin
 
+- name: Install caddy config generator
+  copy:
+    src: generate_caddy_config.sh
+    dest: /home/caddy/.local/bin
+    owner: caddy
+    group: caddy
+    mode: 0700
+
 - name: Install caddy service
   copy:
     src: caddy.service
@@ -22,7 +30,7 @@
 - name: Deploy caddy updater script
   template:
     src: update_caddy.sh.j2
-    dest: /home/caddy/update_caddy.sh
+    dest: /home/caddy/.local/bin/update_caddy.sh
     owner: caddy
     group: caddy
     mode: 0700
@@ -39,7 +47,7 @@
   become: yes
   become_user: caddy
   command:
-    cmd: /home/caddy/update_caddy.sh -f
+    cmd: /home/caddy/.local/bin/update_caddy.sh -f
     creates: "{% if caddy_update_deploy.changed %}/this_does_never_exist{% else %}/home/caddy/.local/bin/caddy{% endif %}"
   ignore_errors: "{{ ansible_check_mode }}"
   # No notify, the updater script restarts the service itself
@@ -53,7 +61,7 @@
     systemd_script_group: caddy
     systemd_service_description: Update caddy to newest version
     systemd_service_options:
-      ExecStart: /home/caddy/update_caddy.sh
+      ExecStart: /home/caddy/.local/bin/update_caddy.sh
       User: caddy
       Group: caddy
     systemd_notify:
@@ -71,23 +79,7 @@
     group: caddy
     mode: 0700
     state: directory
-  notify:
-    - Regenerate caddy config
-    - Restart caddy
-
-- name: Create caddy subconfig directories
-  file:
-    path: /etc/caddy/{{ item }}
-    owner: caddy
-    group: caddy
-    mode: 0700
-    state: directory
-  loop:
-    - global.d
-    - conf.d
-  notify:
-    - Regenerate caddy config
-    - Restart caddy
+  notify: Reload caddy
 
 - name: Install caddy main config
   copy:
@@ -96,9 +88,7 @@
     owner: caddy
     group: caddy
     mode: 0600
-  notify:
-    - Regenerate caddy config
-    - Restart caddy
+  notify: Reload caddy
 
 - name: Create the webroot
   file:
@@ -123,11 +113,26 @@
     enabled: yes
   ignore_errors: "{{ ansible_check_mode }}"
 
-- name: Add main site config to caddy
-  include_role:
-    name: caddy
-    tasks_from: caddy_add_subconfigs.yml
-  vars:
-    caddy_subconfigs:
-      - template: templates/{{ inventory_hostname }}/main.conf.j2
-  when: ('templates/' + inventory_hostname + '/main.conf.j2') is file
+- name: Install global directive files provided by caller
+  include_tasks: add_global_directive_config.yml
+  loop: "{{ lookup('community.general.merge_variables', 'caddy_global_directive_configs', pattern_type='prefix') | default([], true) }}"
+  loop_control:
+    loop_var: caddy_global_directive_config
+    label: "{{ caddy_global_directive_config.template }}"
+  when: lookup('ansible.builtin.varnames', 'caddy_global_directive_configs')
+
+- name: Install caddy site configs provided by caller
+  include_tasks: add_site_config.yml
+  loop: "{{ lookup('community.general.merge_variables', 'caddy_site_configs', pattern_type='prefix') | default([], true) }}"
+  loop_control:
+    loop_var: caddy_site_config
+    label: "{{ caddy_site_config.template }}"
+  when: lookup('ansible.builtin.varnames', 'caddy_site_configs')
+
+- name: Install caddy subconfigs provided by caller
+  include_tasks: add_generic_subconfig.yml
+  loop: "{{ lookup('community.general.merge_variables', 'caddy_subconfigs', pattern_type='prefix') | default([], true) }}"
+  loop_control:
+    loop_var: caddy_generic_subconfig
+    label: "{{ caddy_generic_subconfig.template }}"
+  when: lookup('ansible.builtin.varnames', 'caddy_subconfigs')

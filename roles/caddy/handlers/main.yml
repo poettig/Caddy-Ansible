@@ -1,32 +1,31 @@
 ---
 
-- name: Regenerate caddy config
-  shell:
-    executable: /usr/bin/bash
-    cmd: | 
-      set -e
-      
-      # Check if caddy adapt succeeds
-      /home/caddy/.local/bin/caddy adapt --config /etc/caddy/Caddyfile > /dev/null
-      
-      # Enable nullglob to evaluate /etc/caddy/conf.d/*.json to <empty string> if there are no JSON files
-      shopt -s nullglob
-      
-      # Generate config
-      /usr/bin/jq -cs 'reduce .[] as $item ({}; . * $item)' /etc/caddy/conf.d/*.json <(/home/caddy/.local/bin/caddy adapt --config /etc/caddy/Caddyfile) > /etc/caddy/config.json
-      
-      # Validate that config is correct
-      /home/caddy/.local/bin/caddy validate --config /etc/caddy/config.json
+- name: Check if caddy is active
+  ansible.builtin.systemd_service:
+    name: caddy
+  register: caddy_reload_handler_status
+  listen: Reload caddy
+  ignore_errors: "{{ ansible_check_mode }}"
 
 - name: Reload caddy
-  systemd:
+  ansible.builtin.systemd_service:
     name: caddy
     state: reloaded
+  when: caddy_reload_handler_status.status.ActiveState == "active"
+  listen: Reload caddy
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Restart caddy instead of reloading as it is currently not active
+  ansible.builtin.systemd_service:
+    name: caddy
+    state: restarted
     daemon_reload: true
+  when: caddy_reload_handler_status.status.ActiveState != "active"
+  listen: Reload caddy
   ignore_errors: "{{ ansible_check_mode }}"
 
 - name: Restart caddy
-  systemd:
+  ansible.builtin.systemd_service:
     name: caddy
     state: restarted
     daemon_reload: true
