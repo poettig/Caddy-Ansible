@@ -10,13 +10,16 @@
     name: caddy
     shell: /usr/bin/nologin
 
-- name: Create /home/caddy/.local
+- name: Create necessary directory structure
   file:
-    path: /home/caddy/.local
+    path: "/home/caddy/{{ item }}"
     state: directory
     mode: 0755
     owner: caddy
     group: caddy
+  loop:
+    - .local
+    - .local/bin
 
 - name: Install caddy config generator
   copy:
