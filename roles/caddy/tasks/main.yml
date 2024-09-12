@@ -24,7 +24,7 @@
 - name: Install caddy config generator
   copy:
     src: generate_caddy_config.sh
-    dest: /home/caddy/.local/bin
+    dest: /home/caddy/.local/bin/generate_caddy_config.sh
     owner: caddy
     group: caddy
     mode: 0700
