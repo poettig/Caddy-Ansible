@@ -10,6 +10,14 @@
     name: caddy
     shell: /usr/bin/nologin
 
+- name: Create /home/caddy/.local
+  file:
+    path: /home/caddy/.local
+    state: directory
+    mode: 0755
+    owner: caddy
+    group: caddy
+
 - name: Install caddy config generator
   copy:
     src: generate_caddy_config.sh
