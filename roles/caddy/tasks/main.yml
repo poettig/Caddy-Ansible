@@ -10,27 +10,24 @@
     name: caddy
     shell: /usr/bin/nologin
 
-- name: Create necessary directory structure
+- name: Create the directory for necessary executables
   file:
-    path: "/home/caddy/{{ item }}"
+    path: "{{ caddy_executables_directory }}"
     state: directory
     mode: 0755
     owner: caddy
     group: caddy
-  loop:
-    - .local
-    - .local/bin
 
 - name: Install caddy config generator
   copy:
     src: generate_caddy_config.sh
-    dest: /home/caddy/.local/bin/generate_caddy_config.sh
+    dest: "{{ caddy_executables_directory }}/generate_caddy_config.sh"
     owner: caddy
     group: caddy
     mode: 0700
 
 - name: Install caddy service
-  copy:
+  template:
     src: caddy.service
     dest: /etc/systemd/system/caddy.service
     owner: root
@@ -41,7 +38,7 @@
 - name: Deploy caddy updater script
   template:
     src: update_caddy.sh.j2
-    dest: /home/caddy/.local/bin/update_caddy.sh
+    dest: "{{ caddy_executables_directory }}/update_caddy.sh"
     owner: caddy
     group: caddy
     mode: 0700
@@ -58,8 +55,8 @@
   become: yes
   become_user: caddy
   command:
-    cmd: /home/caddy/.local/bin/update_caddy.sh -f
-    creates: "{% if caddy_update_deploy.changed %}/this_does_never_exist{% else %}/home/caddy/.local/bin/caddy{% endif %}"
+    cmd: "{{ caddy_executables_directory }}/update_caddy.sh -f"
+    creates: "{% if caddy_update_deploy.changed %}/this_does_never_exist{% else %}{{ caddy_executables_directory }}/caddy{% endif %}"
   ignore_errors: "{{ ansible_check_mode }}"
   # No notify, the updater script restarts the service itself
 
@@ -72,7 +69,7 @@
     systemd_script_group: caddy
     systemd_service_description: Update caddy to newest version
     systemd_service_options:
-      ExecStart: /home/caddy/.local/bin/update_caddy.sh
+      ExecStart: "{{ caddy_executables_directory }}/update_caddy.sh"
       User: caddy
       Group: caddy
     systemd_notify:
@@ -101,22 +98,14 @@
     mode: 0600
   notify: Reload caddy
 
-- name: Create the webroot
+- name: Create a webroot if requested
   file:
     path: "{{ caddy_webroot }}"
     state: directory
     owner: caddy
     group: caddy
     mode: 0755
-
-- name: Create the log directory
-  file:
-    path: "{{ caddy_logdir }}"
-    state: directory
-    owner: caddy
-    group: caddy
-    mode: 0711
-  notify: Restart caddy
+  when: caddy_webroot is defined
 
 - name: Enable caddy
   service:

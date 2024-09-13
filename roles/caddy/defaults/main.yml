@@ -1,5 +1,3 @@
 ---
 
-caddy_webroot: /var/www
-caddy_logdir: /var/log/caddy
-caddy_build_target_directory: /home/caddy/.local/bin
+caddy_executables_directory: /home/caddy/.local/bin

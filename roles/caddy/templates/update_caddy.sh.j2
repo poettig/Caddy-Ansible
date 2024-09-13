@@ -28,8 +28,8 @@ do_update() {
 	fi
 }
 
-if [ -f /home/caddy/.local/bin/caddy ]; then
-	old_version=$(/home/caddy/.local/bin/caddy version | cut -d' ' -f1) || { echo "Failed to get current caddy version."; exit 1; }
+if [ -f "{{ caddy_executables_directory }}/caddy" ]; then
+	old_version=$({{ caddy_executables_directory }}/caddy version | cut -d' ' -f1) || { echo "Failed to get current caddy version."; exit 1; }
 else
 	old_version=""
 fi
@@ -56,7 +56,7 @@ if [[ "$old_version" != "$git_version" || "$1" == "-f" ]]; then
 	journalctl --no-pager -q _SYSTEMD_INVOCATION_ID="$(systemctl show --value -p InvocationID caddy)"
 	echo
 	echo "--------------------------------------------"
-	echo "Updated caddy to '$(/home/caddy/.local/bin/caddy version | cut -d' ' -f1)'. Old version was '$old_version', current git version is '$git_version'."
+	echo "Updated caddy to '$({{ caddy_executables_directory }}/caddy version | cut -d' ' -f1)'. Old version was '$old_version', current git version is '$git_version'."
 	echo "--------------------------------------------"
 	echo
 	echo "You can find the changelog at $git_changelog_url"
