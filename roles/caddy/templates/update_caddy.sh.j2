@@ -7,21 +7,21 @@ XCADDY_BUILD="/tmp/xcaddy build{{ [' --with'] | product(caddy_modules | default(
 do_update() {
 	curl -s https://api.github.com/repos/caddyserver/xcaddy/releases/latest | jq -r '.assets[] | select(.name | contains("linux_amd64.tar.gz")) | .browser_download_url' | wget -q -i - -O - | tar xzf - -C /tmp;
 
+	# sort -V sorts semantic versioning to ascending order.
+	# The next two lines therefore ensure that the hardcoded 1.21 is the first version in order, i.e. the installed go version is the same or higher.
 	go_version=$(go version 2> /dev/null | grep -oP "\d+\.\d+\.\d+")
 	if command -v go > /dev/null 2>&1 && ! [ "$go_version" = "$(echo -e "1.21\n$go_version" | sort -V | head -n1)" ]; then
 		# Go installed in correct version, use directly
 		echo "Updating caddy using local go compiler..."
-		# There are no actual quotes, just jinja2
-		# shellcheck disable=SC2090
 		$XCADDY_BUILD 2>&1
 	elif command -v podman > /dev/null 2>&1; then
 		echo "Updating caddy using podman..."
-
 		podman run --pull=newer -q -v {{ caddy_executables_directory }}:{{ caddy_executables_directory }} -v /tmp/xcaddy:/tmp/xcaddy --rm docker.io/golang:latest bash -c "
-			apt-get -qq update 2>&1;
-			apt-get -qq install curl jq wget tar 2>&1;
+			apt-get -qq update 2>&1
+			apt-get -qq install curl jq wget tar 2>&1
 			$XCADDY_BUILD 2>&1
 		"
+		podman image rm docker.io/golang  # Clean up golang image as it uses 4 GB of storage space
 	else
 		echo "Neither go nor podman installed, failed to install."
 		return 1
